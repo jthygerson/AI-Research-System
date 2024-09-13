@@ -1,43 +1,59 @@
 # benchmarking.py
 
 import logging
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from sklearn.datasets import load_digits
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+from datasets import load_dataset
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+from sklearn.metrics import accuracy_score, precision_recall_fscore_support
 
 def run_benchmarks():
     try:
-        # Load benchmark dataset
-        digits = load_digits()
-        X = digits.data
-        y = digits.target
+        # Load a standard benchmarking dataset
+        dataset = load_dataset('glue', 'mrpc')
+        logging.info("Loaded GLUE MRPC dataset for benchmarking.")
 
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
+        tokenizer = AutoTokenizer.from_pretrained('bert-base-uncased')
+        model = AutoModelForSequenceClassification.from_pretrained('bert-base-uncased')
+
+        def tokenize_function(example):
+            return tokenizer(example['sentence1'], example['sentence2'], padding="max_length", truncation=True)
+
+        tokenized_datasets = dataset.map(tokenize_function, batched=True)
+
+        train_dataset = tokenized_datasets['train']
+        eval_dataset = tokenized_datasets['validation']
+
+        training_args = TrainingArguments(
+            output_dir='./benchmark_results',
+            num_train_epochs=1,
+            per_device_train_batch_size=8,
+            evaluation_strategy="epoch",
+            logging_dir='./benchmark_logs',
+            logging_steps=10,
         )
 
-        # Use a standard model for benchmarking
-        model = RandomForestClassifier()
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
+        def compute_metrics(p):
+            preds = p.predictions.argmax(-1)
+            labels = p.label_ids
+            precision, recall, f1, _ = precision_recall_fscore_support(labels, preds, average='binary')
+            acc = accuracy_score(labels, preds)
+            return {'accuracy': acc, 'f1': f1, 'precision': precision, 'recall': recall}
 
-        # Calculate metrics
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-        recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-        f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+            compute_metrics=compute_metrics,
+        )
 
-        benchmarking_results = {
-            'accuracy': accuracy,
-            'precision': precision,
-            'recall': recall,
-            'f1_score': f1
-        }
+        # Train the model
+        trainer.train()
 
-        logging.info(f"Benchmarking results: {benchmarking_results}")
-        return benchmarking_results
+        # Evaluate the model
+        eval_results = trainer.evaluate()
+        logging.info(f"Benchmarking results: {eval_results}")
+
+        return eval_results
 
     except Exception as e:
         logging.error(f"Error in benchmarking: {e}")

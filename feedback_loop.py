@@ -25,6 +25,7 @@ def refine_experiment(experiment_plan, results):
         )
 
         refined_plan = response.choices[0].text.strip()
+        logging.info(f"Refined Experiment Plan:\n{refined_plan}")
         return refined_plan
 
     except Exception as e:

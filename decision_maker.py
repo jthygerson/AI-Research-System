@@ -7,16 +7,18 @@ import logging
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 def decide_next_step(results, experiment_plan):
+    target_accuracy = 0.90  # Adjust as per your goal
+
     prompt = (
         f"The experiment yielded the following results: {results}.\n"
-        f"The target test accuracy is 95%.\n"
-        f"Based on these outcomes and the target, should we:\n"
-        f"1. Refine the experiment further\n"
-        f"2. Redesign the experiment\n"
-        f"3. Generate new research ideas\n"
-        f"4. Proceed to augment the AI Research System\n"
-        f"Provide your recommendation as 'refine', 'redesign', 'new_idea', or 'proceed', "
-        f"and briefly explain your reasoning."
+        f"The target test accuracy is {target_accuracy * 100}%.\n"
+        "Based on these outcomes and the target, should we:\n"
+        "1. Refine the experiment further\n"
+        "2. Redesign the experiment\n"
+        "3. Generate new research ideas\n"
+        "4. Proceed to augment the AI Research System\n"
+        "Provide your recommendation as 'refine', 'redesign', 'new_idea', or 'proceed', "
+        "and briefly explain your reasoning."
     )
 
     try:

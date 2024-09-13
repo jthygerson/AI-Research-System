@@ -35,6 +35,8 @@ def evaluate_ideas(ideas):
                 highest_score = total_score
                 best_idea = idea
 
+            logging.info(f"Idea: {idea}, Novelty: {novelty_score}, Success: {success_score}")
+
         except Exception as e:
             logging.error(f"Error evaluating idea '{idea}': {e}")
             continue
@@ -42,7 +44,6 @@ def evaluate_ideas(ideas):
     return best_idea
 
 def parse_scores(scores_text):
-    # Example format: "Novelty: 8, Success Probability: 7"
     try:
         parts = scores_text.replace(" ", "").split(',')
         novelty = int(parts[0].split(':')[1])

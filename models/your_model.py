@@ -1,42 +1,71 @@
 # models/your_model.py
 
 import logging
-import tensorflow as tf
-from tensorflow import keras
-from tensorflow.keras import layers
-import pandas as pd
+from datasets import load_dataset
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+import numpy as np
 
-def run_model(experiment_plan):
-    # Parse the experiment_plan to extract parameters
-    # For demonstration, we'll train a simple neural network on MNIST
+def run_model(experiment_plan, parameters):
     try:
-        # Load dataset
-        (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
-        x_train = x_train.reshape(-1, 28 * 28).astype("float32") / 255
-        x_test = x_test.reshape(-1, 28 * 28).astype("float32") / 255
+        # Use the selected dataset
+        selected_dataset = parameters.get('selected_dataset')
+        if not selected_dataset:
+            logging.error("No dataset selected for the experiment.")
+            return None
 
-        # Build model
-        model = keras.Sequential([
-            layers.Dense(512, activation='relu', input_shape=(784,)),
-            layers.Dense(10, activation='softmax')
-        ])
+        # Load the dataset
+        dataset = load_dataset(selected_dataset)
+        logging.info(f"Loaded dataset: {selected_dataset}")
 
-        model.compile(optimizer='adam',
-                      loss='sparse_categorical_crossentropy',
-                      metrics=['accuracy'])
+        # Use the model architecture from parameters or default
+        model_name = parameters.get('model_architecture', 'distilbert-base-uncased')
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSequenceClassification.from_pretrained(model_name)
 
-        # Train model
-        model.fit(x_train, y_train, epochs=5, batch_size=32, verbose=0)
+        # Preprocess the data
+        def tokenize_function(example):
+            return tokenizer(example['text'], padding="max_length", truncation=True)
 
-        # Evaluate model
-        test_loss, test_accuracy = model.evaluate(x_test, y_test, verbose=0)
+        tokenized_datasets = dataset.map(tokenize_function, batched=True)
+
+        # Prepare training and evaluation datasets
+        train_dataset = tokenized_datasets['train']
+        eval_dataset = tokenized_datasets.get('validation') or tokenized_datasets.get('test')
+
+        # Set hyperparameters from parameters or defaults
+        hyperparams = parameters.get('hyperparameters', {})
+        num_train_epochs = float(hyperparams.get('epochs', 3))
+        per_device_train_batch_size = int(hyperparams.get('batch_size', 8))
+
+        training_args = TrainingArguments(
+            output_dir='./results',
+            num_train_epochs=num_train_epochs,
+            per_device_train_batch_size=per_device_train_batch_size,
+            evaluation_strategy="epoch",
+            logging_dir='./logs',
+            logging_steps=10,
+        )
+
+        # Initialize Trainer
+        trainer = Trainer(
+            model=model,
+            args=training_args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
+        )
+
+        # Train the model
+        trainer.train()
+
+        # Evaluate the model
+        eval_results = trainer.evaluate()
+        test_accuracy = eval_results.get('eval_accuracy', None)
+        logging.info(f"Evaluation results: {eval_results}")
 
         results = {
-            'test_loss': test_loss,
-            'test_accuracy': test_accuracy
+            'test_accuracy': test_accuracy,
+            'eval_results': eval_results
         }
-
-        logging.info(f"Experiment results: {results}")
         return results
 
     except Exception as e:

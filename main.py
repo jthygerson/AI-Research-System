@@ -35,7 +35,12 @@ def main():
 
         # Step 3: Experiment Design
         logging.info(f"Designing experiment for idea: {best_idea}")
-        experiment_plan = design_experiment(best_idea)
+        experiment_plan, parameters = design_experiment(best_idea)
+
+        if not parameters.get('selected_dataset'):
+            logging.warning("No dataset selected. Generating new ideas.")
+            total_iterations += 1
+            continue
 
         # Experiment Execution and Feedback Loop
         experiment_success = False
@@ -44,7 +49,13 @@ def main():
         while attempt < max_attempts and not experiment_success:
             # Step 4: Conduct Experiment
             logging.info("Executing experiment...")
-            results = execute_experiment(experiment_plan)
+            results = execute_experiment(experiment_plan, parameters)
+
+            if results is None:
+                logging.warning("Experiment execution failed. Refining experiment.")
+                experiment_plan = refine_experiment(experiment_plan, results)
+                attempt += 1
+                continue
 
             # Step 5: Assess Results
             decision = decide_next_step(results, experiment_plan)
@@ -57,7 +68,7 @@ def main():
             elif decision == "redesign":
                 # Go back to Experiment Design
                 logging.info("Redesigning experiment.")
-                experiment_plan = design_experiment(best_idea)
+                experiment_plan, parameters = design_experiment(best_idea)
                 attempt += 1
             elif decision == "new_idea":
                 # Restart the process with new ideas

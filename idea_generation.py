@@ -2,7 +2,7 @@
 
 import openai
 import os
-from utils import initialize_logging
+import logging
 
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
@@ -24,7 +24,8 @@ def generate_ideas():
         )
 
         ideas_text = response.choices[0].text.strip()
-        ideas = [idea.strip("- ").strip() for idea in ideas_text.split('\n') if idea]
+        ideas = [idea.strip('- ').strip() for idea in ideas_text.split('\n') if idea]
+        logging.info(f"Generated ideas: {ideas}")
         return ideas
 
     except Exception as e:
