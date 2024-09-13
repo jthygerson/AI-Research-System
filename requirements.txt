@@ -1,0 +1,8 @@
+openai
+pandas
+numpy
+scikit-learn
+schedule
+matplotlib
+seaborn
+tensorflow  # or torch if using PyTorch
