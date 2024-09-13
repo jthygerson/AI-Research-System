@@ -6,6 +6,7 @@ import logging
 from utils import parse_experiment_plan
 from dataset_search import search_datasets
 
+# Set your OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 def design_experiment(idea):
@@ -23,12 +24,12 @@ def design_experiment(idea):
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",  # Changed model to 'gpt-4o'
             messages=[
                 {"role": "system", "content": "You are an AI assistant that designs experiments."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=1000,
+            max_tokens=1500,
             n=1,
             temperature=0.7,
         )

@@ -4,6 +4,7 @@ import openai
 import os
 import logging
 
+# Set your OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 def decide_next_step(results, experiment_plan):
@@ -23,12 +24,12 @@ def decide_next_step(results, experiment_plan):
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",  # Changed model to 'gpt-4o'
             messages=[
                 {"role": "system", "content": "You are an AI assistant that helps make decisions based on experiment results."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=100,
+            max_tokens=150,
             n=1,
             temperature=0.5,
         )

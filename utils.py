@@ -22,27 +22,31 @@ def initialize_logging():
 def parse_experiment_plan(experiment_plan):
     parameters = {}
 
+    # Extract sections using regular expressions
+    sections = re.split(r'^\d+\.\s+', experiment_plan, flags=re.MULTILINE)
+    sections = [s.strip() for s in sections if s.strip()]
+
+    # Map section titles to keys
+    section_titles = ['Objective', 'Methodology', 'Suggested Datasets', 'Model Architecture', 'Hyperparameters', 'Evaluation Metrics']
+
+    for section in sections:
+        for title in section_titles:
+            if section.startswith(title):
+                content = section[len(title):].strip(':').strip()
+                parameters[title.lower().replace(' ', '_')] = content
+                break
+
+    # Process hyperparameters into a dictionary
+    if 'hyperparameters' in parameters:
+        parameters['hyperparameters'] = parse_hyperparameters(parameters['hyperparameters'])
+
+    # Process datasets into a list
+    if 'suggested_datasets' in parameters:
+        parameters['datasets'] = parse_datasets(parameters['suggested_datasets'])
+
     # Extract model architecture
-    match = re.search(r'Model Architecture:\s*(.+?)(?:\n\n|$)', experiment_plan, re.DOTALL)
-    if match:
-        parameters['model_architecture'] = match.group(1).strip()
-
-    # Extract hyperparameters
-    match = re.search(r'Hyperparameters:\s*(.+?)(?:\n\n|$)', experiment_plan, re.DOTALL)
-    if match:
-        hyperparams_text = match.group(1).strip()
-        parameters['hyperparameters'] = parse_hyperparameters(hyperparams_text)
-
-    # Extract suggested datasets
-    match = re.search(r'Suggested Datasets:\s*(.+?)(?:\n\n|$)', experiment_plan, re.DOTALL)
-    if match:
-        datasets_text = match.group(1).strip()
-        parameters['datasets'] = parse_datasets(datasets_text)
-
-    # Extract evaluation metrics
-    match = re.search(r'Evaluation Metrics:\s*(.+?)(?:\n\n|$)', experiment_plan, re.DOTALL)
-    if match:
-        parameters['evaluation_metrics'] = [metric.strip() for metric in match.group(1).split(',')]
+    if 'model_architecture' in parameters:
+        parameters['model_architecture'] = parameters['model_architecture'].split('\n')[0].strip()
 
     return parameters
 
@@ -55,5 +59,5 @@ def parse_hyperparameters(hyperparams_text):
     return hyperparams
 
 def parse_datasets(datasets_text):
-    datasets = [dataset.strip('- ').strip() for dataset in datasets_text.split('\n') if dataset.strip()]
+    datasets = [dataset.strip('-• ').strip() for dataset in datasets_text.split('\n') if dataset.strip()]
     return datasets

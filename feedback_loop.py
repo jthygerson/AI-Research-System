@@ -4,6 +4,7 @@ import openai
 import os
 import logging
 
+# Set your OpenAI API key
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 def refine_experiment(experiment_plan, results):
@@ -16,12 +17,12 @@ def refine_experiment(experiment_plan, results):
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4o",  # Changed model to 'gpt-4o'
             messages=[
                 {"role": "system", "content": "You are an AI assistant that refines experiments based on results."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=1000,
+            max_tokens=1500,
             n=1,
             temperature=0.7,
         )
