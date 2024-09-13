@@ -15,7 +15,7 @@ def design_experiment(idea):
         "Provide the experiment plan with the following sections:\n"
         "1. Objective\n"
         "2. Methodology\n"
-        "3. Suggested Datasets (specify dataset names or sources)\n"
+        "3. Suggested Datasets (specify dataset names or sources available on Hugging Face Datasets)\n"
         "4. Model Architecture (specify model types)\n"
         "5. Hyperparameters (list them as key-value pairs)\n"
         "6. Evaluation Metrics\n"
@@ -24,7 +24,7 @@ def design_experiment(idea):
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4o",  # Changed model to 'gpt-4o'
+            model="gpt-4",  # Use a valid model name
             messages=[
                 {"role": "system", "content": "You are an AI assistant that designs experiments."},
                 {"role": "user", "content": prompt}
@@ -54,7 +54,10 @@ def design_experiment(idea):
             parameters['selected_dataset'] = selected_dataset
         else:
             logging.warning("No relevant datasets found on Hugging Face.")
-            parameters['selected_dataset'] = None
+            # Fallback to a default dataset
+            default_dataset = 'mnist'
+            logging.info(f"Using default dataset: {default_dataset}")
+            parameters['selected_dataset'] = default_dataset
 
         return experiment_plan, parameters
 
