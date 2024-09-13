@@ -2,8 +2,14 @@
 
 import logging
 from datasets import load_dataset
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
+from transformers import (
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    Trainer,
+    TrainingArguments,
+)
 import numpy as np
+import torch
 
 def run_model(experiment_plan, parameters):
     try:
@@ -24,27 +30,59 @@ def run_model(experiment_plan, parameters):
 
         # Preprocess the data
         def tokenize_function(example):
-            return tokenizer(example['text'], padding="max_length", truncation=True)
+            return tokenizer(
+                example['text'],
+                padding="max_length",
+                truncation=True,
+                max_length=128,
+            )
 
         tokenized_datasets = dataset.map(tokenize_function, batched=True)
+
+        # Remove columns not needed
+        tokenized_datasets = tokenized_datasets.remove_columns(
+            [col for col in tokenized_datasets['train'].column_names if col not in ['input_ids', 'attention_mask', 'label']]
+        )
+
+        # Set format for PyTorch
+        tokenized_datasets.set_format('torch')
 
         # Prepare training and evaluation datasets
         train_dataset = tokenized_datasets['train']
         eval_dataset = tokenized_datasets.get('validation') or tokenized_datasets.get('test')
+
+        if eval_dataset is None:
+            logging.error("No validation or test dataset found.")
+            return None
 
         # Set hyperparameters from parameters or defaults
         hyperparams = parameters.get('hyperparameters', {})
         num_train_epochs = float(hyperparams.get('epochs', 3))
         per_device_train_batch_size = int(hyperparams.get('batch_size', 8))
 
+        # Check for GPU availability
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        model.to(device)
+        logging.info(f"Using device: {device}")
+
         training_args = TrainingArguments(
             output_dir='./results',
             num_train_epochs=num_train_epochs,
             per_device_train_batch_size=per_device_train_batch_size,
+            per_device_eval_batch_size=per_device_train_batch_size,
             evaluation_strategy="epoch",
             logging_dir='./logs',
             logging_steps=10,
+            load_best_model_at_end=True,
+            metric_for_best_model='accuracy',
         )
+
+        # Define compute_metrics function
+        def compute_metrics(eval_pred):
+            logits, labels = eval_pred
+            predictions = np.argmax(logits, axis=1)
+            accuracy = (predictions == labels).mean()
+            return {'accuracy': accuracy}
 
         # Initialize Trainer
         trainer = Trainer(
@@ -52,6 +90,7 @@ def run_model(experiment_plan, parameters):
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
+            compute_metrics=compute_metrics,
         )
 
         # Train the model

@@ -11,7 +11,7 @@ def refine_experiment(experiment_plan, results):
         f"The experiment was conducted as per the following plan:\n{experiment_plan}\n"
         f"The results obtained are: {results}\n"
         "Based on these results, suggest improvements to enhance performance. "
-        "Update the experiment plan accordingly."
+        "Update the experiment plan accordingly. Ensure the updated plan has the same sections as before."
     )
 
     try:

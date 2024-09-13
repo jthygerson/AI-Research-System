@@ -12,6 +12,12 @@ def initialize_logging():
         level=logging.INFO,
         format='%(asctime)s %(levelname)s %(message)s',
     )
+    # Also log to console
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+    console.setFormatter(formatter)
+    logging.getLogger().addHandler(console)
 
 def parse_experiment_plan(experiment_plan):
     parameters = {}

@@ -2,6 +2,7 @@
 
 import logging
 import json
+import os
 
 def augment_system(results):
     try:
@@ -12,7 +13,7 @@ def augment_system(results):
             if not os.path.exists('config'):
                 os.makedirs('config')
             with open(hyperparams_file, 'w') as f:
-                json.dump(best_hyperparams, f)
+                json.dump(best_hyperparams, f, indent=4)
             logging.info("Default hyperparameters updated.")
 
         logging.info("System augmented based on experimental findings.")
