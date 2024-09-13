@@ -18,16 +18,18 @@ def evaluate_ideas(ideas):
         )
 
         try:
-            response = openai.Completion.create(
-                engine="text-davinci-003",
-                prompt=prompt,
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are an AI assistant that evaluates research ideas."},
+                    {"role": "user", "content": prompt}
+                ],
                 max_tokens=50,
                 n=1,
-                stop=None,
                 temperature=0.5,
             )
 
-            scores_text = response.choices[0].text.strip()
+            scores_text = response['choices'][0]['message']['content'].strip()
             novelty_score, success_score = parse_scores(scores_text)
 
             total_score = novelty_score + success_score

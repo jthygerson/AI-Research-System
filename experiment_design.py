@@ -22,16 +22,18 @@ def design_experiment(idea):
     )
 
     try:
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=prompt,
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an AI assistant that designs experiments."},
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=1000,
             n=1,
-            stop=None,
             temperature=0.7,
         )
 
-        experiment_plan = response.choices[0].text.strip()
+        experiment_plan = response['choices'][0]['message']['content'].strip()
         logging.info(f"Experiment Plan:\n{experiment_plan}")
 
         # Parse the experiment plan

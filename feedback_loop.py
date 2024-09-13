@@ -15,16 +15,18 @@ def refine_experiment(experiment_plan, results):
     )
 
     try:
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=prompt,
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an AI assistant that refines experiments based on results."},
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=1000,
             n=1,
-            stop=None,
             temperature=0.7,
         )
 
-        refined_plan = response.choices[0].text.strip()
+        refined_plan = response['choices'][0]['message']['content'].strip()
         logging.info(f"Refined Experiment Plan:\n{refined_plan}")
         return refined_plan
 

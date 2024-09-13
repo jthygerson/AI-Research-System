@@ -14,17 +14,20 @@ def generate_ideas():
     )
 
     try:
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=prompt,
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an AI assistant that generates research ideas."},
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=250,
             n=1,
-            stop=None,
             temperature=0.7,
         )
 
-        ideas_text = response.choices[0].text.strip()
-        ideas = [idea.strip('- ').strip() for idea in ideas_text.split('\n') if idea]
+        ideas_text = response['choices'][0]['message']['content'].strip()
+        # Split ideas by newlines and bullets
+        ideas = [idea.strip('-• ').strip() for idea in ideas_text.split('\n') if idea.strip()]
         logging.info(f"Generated ideas: {ideas}")
         return ideas
 

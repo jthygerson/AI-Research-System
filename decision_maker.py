@@ -22,16 +22,18 @@ def decide_next_step(results, experiment_plan):
     )
 
     try:
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=prompt,
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an AI assistant that helps make decisions based on experiment results."},
+                {"role": "user", "content": prompt}
+            ],
             max_tokens=100,
             n=1,
-            stop=None,
             temperature=0.5,
         )
 
-        decision_text = response.choices[0].text.strip().lower()
+        decision_text = response['choices'][0]['message']['content'].strip().lower()
         logging.info(f"Decision text: {decision_text}")
 
         if 'refine' in decision_text:
