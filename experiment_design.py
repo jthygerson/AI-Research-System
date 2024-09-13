@@ -11,7 +11,7 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 
 def design_experiment(idea):
     prompt = (
-        f"Design a detailed experiment to test the following idea:\nIdea: {idea}\n"
+        f"Design a detailed experiment in the field of AI/ML to test the following idea, which aims to improve the AI Research System's own performance:\nIdea: {idea}\n"
         "Provide the experiment plan with the following sections:\n"
         "1. Objective\n"
         "2. Methodology\n"
@@ -19,14 +19,14 @@ def design_experiment(idea):
         "4. Model Architecture (specify model types)\n"
         "5. Hyperparameters (list them as key-value pairs)\n"
         "6. Evaluation Metrics\n"
-        "Ensure that each section is clearly labeled."
+        "Ensure that each section is clearly labeled and relevant to AI/ML."
     )
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4",  # Use a valid model name
+            model="gpt-4",  # Use a valid model name, e.g., "gpt-3.5-turbo" or "gpt-4"
             messages=[
-                {"role": "system", "content": "You are an AI assistant that designs experiments."},
+                {"role": "system", "content": "You are an AI assistant that designs AI/ML experiments."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=1500,
@@ -54,8 +54,8 @@ def design_experiment(idea):
             parameters['selected_dataset'] = selected_dataset
         else:
             logging.warning("No relevant datasets found on Hugging Face.")
-            # Fallback to a default dataset
-            default_dataset = 'mnist'
+            # Fallback to a default text dataset
+            default_dataset = 'ag_news'  # A text classification dataset
             logging.info(f"Using default dataset: {default_dataset}")
             parameters['selected_dataset'] = default_dataset
 

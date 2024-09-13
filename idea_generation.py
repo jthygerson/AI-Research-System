@@ -9,16 +9,18 @@ openai.api_key = os.getenv('OPENAI_API_KEY')
 
 def generate_ideas():
     prompt = (
-        "Generate five novel research ideas in the field of AI that can be executed "
-        "with limited computational resources (e.g., single GPU) and within one week. "
+        "Generate five novel research ideas in the field of artificial intelligence (AI) and machine learning (ML) "
+        "that focus on improving the performance and capabilities of AI systems themselves. "
+        "The ideas should be executable with limited computational resources (e.g., single GPU) and within one week. "
+        "Ensure that the ideas are specific to AI/ML and aim to enhance the AI Research System's own performance. "
         "List them as bullet points."
     )
 
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4o",  # Changed model to 'gpt-4o'
+            model="gpt-4",  # Use a valid model name, e.g., "gpt-3.5-turbo" or "gpt-4"
             messages=[
-                {"role": "system", "content": "You are an AI assistant that generates research ideas."},
+                {"role": "system", "content": "You are an AI assistant that generates AI research ideas."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500,

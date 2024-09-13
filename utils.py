@@ -59,5 +59,12 @@ def parse_hyperparameters(hyperparams_text):
     return hyperparams
 
 def parse_datasets(datasets_text):
-    datasets = [dataset.strip('-• ').strip() for dataset in datasets_text.split('\n') if dataset.strip()]
+    datasets = []
+    for line in datasets_text.split('\n'):
+        line = line.strip()
+        if line.startswith(('-', '*', '•')):
+            dataset = line.lstrip('-*•').strip()
+            datasets.append(dataset)
+        elif line:
+            datasets.append(line)
     return datasets

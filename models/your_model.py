@@ -1,83 +1,76 @@
-# models/your_model.py
+# your_model.py
 
 import logging
+import os
 from datasets import load_dataset
-from transformers import (
-    AutoTokenizer,
-    AutoModelForSequenceClassification,
-    Trainer,
-    TrainingArguments,
-)
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
 import numpy as np
 import torch
+import random
 
-def run_model(experiment_plan, parameters):
+def run_model(parameters):
     try:
-        # Use the selected dataset
-        selected_dataset = parameters.get('selected_dataset')
-        if not selected_dataset:
-            logging.error("No dataset selected for the experiment.")
-            return None
+        # Set up device
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        logging.info(f"Using device: {device}")
 
-        # Load the dataset
-        dataset = load_dataset(selected_dataset)
-        logging.info(f"Loaded dataset: {selected_dataset}")
+        # Set random seeds for reproducibility
+        seed = int(parameters.get('seed', 42))
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        if device.type == 'cuda':
+            torch.cuda.manual_seed_all(seed)
 
-        # Use the model architecture from parameters or default
-        model_name = parameters.get('model_architecture', 'distilbert-base-uncased')
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSequenceClassification.from_pretrained(model_name)
+        # Load dataset
+        dataset_name = parameters.get('selected_dataset', 'ag_news')
+        raw_datasets = load_dataset(dataset_name)
+        logging.info(f"Loaded dataset: {dataset_name}")
 
-        # Preprocess the data
+        # Preprocess data
+        tokenizer_name = parameters.get('model_architecture', 'distilbert-base-uncased')
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
+        logging.info(f"Using tokenizer: {tokenizer_name}")
+
         def tokenize_function(example):
-            return tokenizer(
-                example['text'],
-                padding="max_length",
-                truncation=True,
-                max_length=128,
-            )
+            return tokenizer(example['text'], padding="max_length", truncation=True)
 
-        tokenized_datasets = dataset.map(tokenize_function, batched=True)
-
-        # Remove columns not needed
-        tokenized_datasets = tokenized_datasets.remove_columns(
-            [col for col in tokenized_datasets['train'].column_names if col not in ['input_ids', 'attention_mask', 'label']]
-        )
-
-        # Set format for PyTorch
-        tokenized_datasets.set_format('torch')
+        tokenized_datasets = raw_datasets.map(tokenize_function, batched=True)
 
         # Prepare training and evaluation datasets
         train_dataset = tokenized_datasets['train']
-        eval_dataset = tokenized_datasets.get('validation') or tokenized_datasets.get('test')
+        eval_dataset = tokenized_datasets['test']
 
-        if eval_dataset is None:
-            logging.error("No validation or test dataset found.")
-            return None
+        # Set format for PyTorch
+        train_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'label'])
+        eval_dataset.set_format(type='torch', columns=['input_ids', 'attention_mask', 'label'])
 
-        # Set hyperparameters from parameters or defaults
-        hyperparams = parameters.get('hyperparameters', {})
-        num_train_epochs = float(hyperparams.get('epochs', 3))
-        per_device_train_batch_size = int(hyperparams.get('batch_size', 8))
+        # Determine number of labels
+        num_labels = len(set(train_dataset['label']))
+        logging.info(f"Number of labels: {num_labels}")
 
-        # Check for GPU availability
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        # Load pre-trained model
+        model_name = parameters.get('model_architecture', 'distilbert-base-uncased')
+        model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=num_labels)
         model.to(device)
-        logging.info(f"Using device: {device}")
+        logging.info(f"Loaded model: {model_name}")
 
+        # Training arguments
         training_args = TrainingArguments(
             output_dir='./results',
-            num_train_epochs=num_train_epochs,
-            per_device_train_batch_size=per_device_train_batch_size,
-            per_device_eval_batch_size=per_device_train_batch_size,
+            num_train_epochs=int(parameters.get('num_epochs', 3)),
+            per_device_train_batch_size=int(parameters.get('batch_size', 8)),
+            per_device_eval_batch_size=int(parameters.get('batch_size', 8)),
             evaluation_strategy="epoch",
             logging_dir='./logs',
             logging_steps=10,
+            save_total_limit=2,
             load_best_model_at_end=True,
             metric_for_best_model='accuracy',
+            seed=seed,
         )
 
-        # Define compute_metrics function
+        # Define compute metrics function
         def compute_metrics(eval_pred):
             logits, labels = eval_pred
             predictions = np.argmax(logits, axis=1)
@@ -93,18 +86,19 @@ def run_model(experiment_plan, parameters):
             compute_metrics=compute_metrics,
         )
 
-        # Train the model
+        # Start training
+        logging.info("Starting training...")
         trainer.train()
 
         # Evaluate the model
+        logging.info("Evaluating the model...")
         eval_results = trainer.evaluate()
-        test_accuracy = eval_results.get('eval_accuracy', None)
-        logging.info(f"Evaluation results: {eval_results}")
 
         results = {
-            'test_accuracy': test_accuracy,
-            'eval_results': eval_results
+            'test_accuracy': eval_results['eval_accuracy'],
+            'model_parameters': parameters
         }
+        logging.info(f"Experiment Results: {results}")
         return results
 
     except Exception as e:
